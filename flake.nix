@@ -14,7 +14,21 @@
   }: let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
-    pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
+    pkgs-unstable = import nixpkgs-unstable {
+      inherit system;
+      config = {
+        allowUnfree = true;
+        android_sdk.accept_license = true;
+      };
+    };
+    androidSdk =
+      (pkgs-unstable.androidenv.composeAndroidPackages {
+        platformVersions = ["37.2"];
+        buildToolsVersions = ["37.0.0"];
+        includeEmulator = false;
+        includeSystemImages = false;
+        includeSources = false;
+      }).androidsdk;
     # junitJar = pkgs.stdenv.mkDerivation {
     #   pname = "junit";
     #   version = "1.14.3";
@@ -38,21 +52,24 @@
       packages = with pkgs;
         [
           libgcc
-          jdk17
-          postgresql_jdbc
-          mermaid-cli
+          jdk21
+          androidSdk
           maven
           mvnd
           spring-boot-cli
         ]
         ++ (with pkgs-unstable; [
           jdt-language-server
+          # android-studio
         ]);
 
       # export GLFW_PLATFORM_WAYLAND=1
       shellHook = ''
-        export JAVA_HOME=${pkgs.jdk17}
-        export PATH="${pkgs.jdk17}/bin:$PATH"
+        export JAVA_HOME=${pkgs.jdk21}
+        export PATH="${pkgs.jdk21}/bin:$PATH"
+        export ANDROID_HOME=${androidSdk}/libexec/android-sdk
+        export ANDROID_SDK_ROOT="$ANDROID_HOME"
+        export GRADLE_OPTS="-Dorg.gradle.project.android.aapt2FromMavenOverride=$ANDROID_HOME/build-tools/37.0.0/aapt2 ''${GRADLE_OPTS:-}"
         export GLFW_PLATFORM=wayland
         export _JAVA_AWT_WM_NONREPARENTING=1
       '';
