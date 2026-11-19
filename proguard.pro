@@ -23,6 +23,16 @@
 -keep,allowshrinking,allowoptimization class app.lawnchair.LawnchairLauncher { *; }
 -keep,allowshrinking,allowoptimization class app.lawnchair.compatlib.** { *; }
 
+# Older Android versions invoke no-argument animation callbacks, while the framework
+# used for release shrinking declares callbacks with a timestamp argument. Preserve
+# both signatures: R8 cannot see the calls made by older framework versions.
+-keepclassmembers class app.lawnchair.compatlib.** implements android.app.ActivityOptions$OnAnimationStartedListener {
+    public void onAnimationStarted(...);
+}
+-keepclassmembers class app.lawnchair.compatlib.** implements android.app.ActivityOptions$OnAnimationFinishedListener {
+    public void onAnimationFinished(...);
+}
+
 -keep,allowshrinking,allowoptimization class com.google.protobuf.Timestamp { *; }
 -keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
 
